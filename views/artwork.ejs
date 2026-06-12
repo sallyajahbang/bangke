@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title><%= artworkData.title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-300 min-h-screen flex flex-col font-sans antialiased overflow-x-hidden">
+    <header class="sticky top-0 z-50 backdrop-blur-md bg-zinc-900/75 border-b border-emerald-950/80 p-3 sm:p-4 shadow-sm flex justify-between items-center px-4 sm:px-6">
+        <div class="min-w-0 flex-1 pr-4">
+            <h1 class="text-sm sm:text-md font-bold truncate text-zinc-100 tracking-tight"><%= artworkData.title %></h1>
+            <p class="text-[11px] sm:text-xs text-emerald-400 font-medium mt-0.5">
+                Kreator: <a href="/user/<%= artworkData.userId %>" class="hover:underline text-emerald-400 font-semibold"><%= artworkData.author %></a>
+            </p>
+        </div>
+        <button onclick="window.history.back()" class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all duration-300 shrink-0 active:scale-95">
+            Tutup
+        </button>
+    </header>
+
+    <section class="max-w-3xl mx-auto w-full px-3 sm:px-4 mt-4">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+            
+            <div class="flex flex-wrap gap-3 text-[11px] sm:text-xs font-medium text-zinc-500 mb-2.5 border-b border-zinc-800 pb-2.5">
+                <span>Dilihat: <strong class="text-zinc-200"><%= artworkData.viewCount %></strong></span>
+                <span>Penanda: <strong class="text-zinc-200"><%= artworkData.bookmarkCount %></strong></span>
+                <span>Total: <strong class="text-emerald-400"><%= artworkData.pages.length %> Gambar</strong></span>
+            </div>
+
+            <% if (artworkData.description) { %>
+                <div class="text-xs sm:text-sm text-zinc-300 leading-relaxed mb-4 overflow-x-auto prose prose-invert max-w-none break-words">
+                    <%- artworkData.description %>
+                </div>
+            <% } %>
+
+            <div class="flex flex-wrap gap-1">
+                <% artworkData.tags.forEach(tag => { %>
+                    <a href="/search?q=<%= encodeURIComponent(tag) %>" class="text-[10px] sm:text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded-lg border border-zinc-700/60 hover:border-emerald-900 hover:text-emerald-400 transition-all">
+                        #<%= tag %>
+                    </a>
+                <% }) %>
+            </div>
+        </div>
+    </section>
+
+    <main class="flex-1 flex flex-col items-center gap-2 py-4 max-w-3xl mx-auto w-full px-0 sm:px-4">
+        
+        <% if (artworkData.pages.length > 0) { %>
+            <div class="w-full bg-zinc-900 p-1 sm:p-2 border-y sm:border border-zinc-800 sm:rounded-2xl shadow-sm relative group">
+                <img src="/proxy?url=<%= encodeURIComponent(artworkData.pages[0]) %>" alt="Halaman 1" class="w-full h-auto block object-contain sm:rounded-xl max-w-full">
+                <span class="absolute bottom-3 right-3 bg-zinc-950/80 backdrop-blur-sm text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-md text-zinc-300 shadow-sm border border-zinc-700/50">
+                    1 / <%= artworkData.pages.length %>
+                </span>
+            </div>
+        <% } %>
+
+        <% if (artworkData.pages.length > 1) { %>
+            <div id="trigger-container" class="w-full text-center py-3 px-4">
+                <button onclick="handleShowAllPages()" class="w-full sm:w-auto inline-flex justify-center items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-teal-600/10 text-emerald-400 font-semibold text-sm px-6 py-3 rounded-xl border border-emerald-900/60 shadow-sm transition-all duration-300 active:bg-emerald-950/40">
+                    Lihat Semua (<%= artworkData.pages.length - 1 %> Gambar Lagi)
+                </button>
+            </div>
+        <% } %>
+
+        <div id="extra-pages" class="hidden w-full flex-col gap-2">
+            <% artworkData.pages.forEach((pageUrl, index) => { %>
+                <% if (index > 0) { %>
+                    <div class="w-full bg-zinc-900 p-1 sm:p-2 border-y sm:border border-zinc-800 sm:rounded-2xl shadow-sm relative group">
+                        <img src="/proxy?url=<%= encodeURIComponent(pageUrl) %>" alt="Halaman <%= index + 1 %>" class="w-full h-auto block object-contain sm:rounded-xl max-w-full">
+                        <span class="absolute bottom-3 right-3 bg-zinc-950/80 backdrop-blur-sm text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-md text-zinc-300 shadow-sm border border-zinc-700/50">
+                            <%= index + 1 %> / <%= artworkData.pages.length %>
+                        </span>
+                    </div>
+                <% } %>
+            <% }) %>
+        </div>
+    </main>
+
+    <script>
+        function handleShowAllPages() {
+            const extraPagesDiv = document.getElementById('extra-pages');
+            const triggerContainer = document.getElementById('trigger-container');
+            
+            if (extraPagesDiv && triggerContainer) {
+                extraPagesDiv.classList.remove('hidden');
+                extraPagesDiv.classList.add('flex');
+                triggerContainer.remove();
+            }
+        }
+    </script>
+</body>
+</html>

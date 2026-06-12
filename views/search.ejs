@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Hasil Pencarian: <%= query %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-300 font-sans antialiased overflow-x-hidden">
+    <nav class="sticky top-0 z-50 backdrop-blur-md bg-zinc-900/75 border-b border-emerald-950/80 shadow-sm px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex justify-between items-center w-full sm:w-auto shrink-0">
+                <a href="/" class="text-lg font-black bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent tracking-tight">
+                    Rimuru Explorer
+                </a>
+                <a href="/" class="text-xs font-semibold text-emerald-400 sm:hidden bg-emerald-950/30 px-3 py-1.5 rounded-lg">Beranda</a>
+            </div>
+            
+            <form action="/search" method="GET" class="w-full flex gap-2 sm:max-w-md">
+                <input type="text" name="q" placeholder="Cari keindahan lain..." value="<%= query %>" class="w-full px-4 py-2.5 bg-zinc-800/40 border border-zinc-700 rounded-xl focus:outline-none focus:bg-zinc-900 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-950/50 text-zinc-100 text-base md:text-sm transition-all duration-300">
+                <button type="submit" class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-emerald-950 transition-all duration-300 shrink-0 active:scale-95">Cari</button>
+            </form>
+
+            <a href="/" class="hidden sm:inline-block text-sm font-medium text-emerald-400 hover:text-emerald-500 transition duration-200">Beranda</a>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+        <div class="mb-5">
+            <p class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Menampilkan Hasil Dari</p>
+            <h1 class="text-xl sm:text-2xl font-bold text-zinc-100 mt-0.5">Kata Kunci: <span class="text-emerald-400">"<%= query %>"</span></h1>
+        </div>
+
+        <div id="artwork-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5">
+            <% data.artworks.forEach(art => { %>
+                <div class="bg-zinc-900 border border-zinc-800/80 rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between transition-all duration-300 group active:bg-zinc-800/50" style="content-visibility: auto; contain-intrinsic-size: 0 340px;">
+                    <a href="/artwork/<%= art.id %>" class="block relative overflow-hidden bg-zinc-950">
+                        <img src="/proxy?url=<%= encodeURIComponent(art.image_urls.medium) %>" alt="<%= art.title %>" class="w-full h-44 sm:h-48 md:h-52 object-cover" loading="lazy">
+                        
+                        <% if (art.tags.includes('R-18') || art.tags.includes('R18')) { %>
+                            <span class="absolute top-2.5 left-2.5 bg-rose-600/90 backdrop-blur-sm text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-lg shadow-sm tracking-wider">R-18</span>
+                        <% } %>
+
+                        <span class="absolute top-2.5 right-2.5 bg-zinc-900/80 backdrop-blur-sm text-zinc-300 text-[9px] sm:text-[10px] font-medium px-1.5 py-0.5 rounded-lg shadow-sm border border-zinc-700/50">
+                            <%= art.pageCount %> Pgs
+                        </span>
+                    </a>
+                    
+                    <div class="p-3 sm:p-4 flex-1 flex flex-col justify-between gap-2.5">
+                        <div>
+                            <a href="/artwork/<%= art.id %>" class="text-xs sm:text-sm font-semibold text-zinc-100 line-clamp-1 block hover:text-emerald-400"><%= art.title %></a>
+                            <p class="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
+                                Oleh <a href="/user/<%= art.userId %>" class="text-emerald-500 font-medium hover:underline"><%= art.userName %></a>
+                            </p>
+                        </div>
+
+                        <div class="flex flex-wrap gap-1 overflow-hidden h-5">
+                            <% art.tags.forEach(tag => { %>
+                                <a href="/search?q=<%= encodeURIComponent(tag) %>" class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-md hover:bg-emerald-950/30 hover:text-emerald-400 transition-all duration-200 truncate max-w-[85px]">
+                                    #<%= tag %>
+                                </a>
+                            <% }) %>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+
+        <div id="loading-trigger" class="w-full text-center py-8 mt-4 flex justify-center items-center">
+            <div id="loading-spinner" class="hidden">
+                <svg class="animate-spin h-6 w-6 text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentPage = 1;
+        const queryKeyword = "<%= query %>";
+        let isFetching = false;
+        let isEndContent = false;
+
+        const artworkGrid = document.getElementById('artwork-grid');
+        const loadingTrigger = document.getElementById('loading-trigger');
+        const loadingSpinner = document.getElementById('loading-spinner');
+
+        const scrollObserver = new IntersectionObserver(async (entries) => {
+            if (entries[0].isIntersecting && !isFetching && !isEndContent) {
+                await fetchNextPageData();
+            }
+        }, {
+            rootMargin: '400px'
+        });
+
+        if (loadingTrigger) {
+            scrollObserver.observe(loadingTrigger);
+        }
+
+        async function fetchNextPageData() {
+            isFetching = true;
+            loadingSpinner.classList.remove('hidden');
+            currentPage++;
+
+            try {
+                const targetUrl = `/search?q=${encodeURIComponent(queryKeyword)}&page=${currentPage}&ajax=1`;
+                const response = await fetch(targetUrl);
+                const result = await response.json();
+
+                if (!result.artworks || result.artworks.length === 0) {
+                    isEndContent = true;
+                    loadingTrigger.innerHTML = '<span class="text-xs text-zinc-600 font-medium tracking-wide">Semua karya telah berhasil dimuat</span>';
+                    return;
+                }
+
+                result.artworks.forEach(art => {
+                    const isR18 = art.tags.includes('R-18') || art.tags.includes('R18');
+                    
+                    const tagsContainerHtml = art.tags.map(tag => `
+                        <a href="/search?q=${encodeURIComponent(tag)}" class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-md hover:bg-emerald-950/30 hover:text-emerald-400 transition-all duration-200 truncate max-w-[85px]">
+                            #${tag}
+                        </a>
+                    `).join('');
+
+                    const elementHtml = `
+                        <a href="/artwork/${art.id}" class="block relative overflow-hidden bg-zinc-950">
+                            <img src="/proxy?url=${encodeURIComponent(art.image_urls.medium)}" alt="${art.title}" class="w-full h-44 sm:h-48 md:h-52 object-cover" loading="lazy">
+                            ${isR18 ? `<span class="absolute top-2.5 left-2.5 bg-rose-600/90 backdrop-blur-sm text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-lg shadow-sm tracking-wider">R-18</span>` : ''}
+                            <span class="absolute top-2.5 right-2.5 bg-zinc-900/80 backdrop-blur-sm text-zinc-300 text-[9px] sm:text-[10px] font-medium px-1.5 py-0.5 rounded-lg shadow-sm border border-zinc-700/50">
+                                ${art.pageCount} Pgs
+                            </span>
+                        </a>
+                        <div class="p-3 sm:p-4 flex-1 flex flex-col justify-between gap-2.5">
+                            <div>
+                                <a href="/artwork/${art.id}" class="text-xs sm:text-sm font-semibold text-zinc-100 line-clamp-1 block hover:text-emerald-400">${art.title}</a>
+                                <p class="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
+                                    Oleh <a href="/user/${art.userId}" class="text-emerald-500 font-medium hover:underline">${art.userName}</a>
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap gap-1 overflow-hidden h-5">
+                                ${tagsContainerHtml}
+                            </div>
+                        </div>
+                    `;
+
+                    const nodeWrapper = document.createElement('div');
+                    nodeWrapper.className = "bg-zinc-900 border border-zinc-800/80 rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between transition-all duration-300 group active:bg-zinc-800/50";
+                    
+                    // Menerapkan optimasi render style pada node baru yang ditambahkan ke DOM
+                    nodeWrapper.style.contentVisibility = "auto";
+                    nodeWrapper.style.containIntrinsicSize = "0 340px";
+                    
+                    nodeWrapper.innerHTML = elementHtml;
+                    artworkGrid.appendChild(nodeWrapper);
+                });
+
+            } catch (error) {
+                console.error('Gagal mengambil halaman tambahan:', error);
+            } finally {
+                isFetching = false;
+                if (!isEndContent) {
+                    loadingSpinner.classList.add('hidden');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
