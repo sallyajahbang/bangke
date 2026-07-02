@@ -6,38 +6,73 @@
     <title><%= artworkData.title %></title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-zinc-950 text-zinc-300 min-h-screen flex flex-col font-sans antialiased overflow-x-hidden">
-    <header class="sticky top-0 z-50 backdrop-blur-md bg-zinc-900/75 border-b border-emerald-950/80 p-3 sm:p-4 shadow-sm flex justify-between items-center px-4 sm:px-6">
+<body class="bg-black text-zinc-300 min-h-screen flex flex-col font-sans antialiased overflow-x-hidden">
+    <!-- Header: Tema Hitam dengan batas Merah Darah khas Alice -->
+    <header class="sticky top-0 z-50 backdrop-blur-md bg-zinc-950/80 border-b border-red-950 p-3 sm:p-4 shadow-[0_4px_20px_rgba(185,28,28,0.15)] flex justify-between items-center px-4 sm:px-6">
         <div class="min-w-0 flex-1 pr-4">
-            <h1 class="text-sm sm:text-md font-bold truncate text-zinc-100 tracking-tight"><%= artworkData.title %></h1>
-            <p class="text-[11px] sm:text-xs text-emerald-400 font-medium mt-0.5">
-                Kreator: <a href="/user/<%= artworkData.userId %>" class="hover:underline text-emerald-400 font-semibold"><%= artworkData.author %></a>
+            <h1 class="text-sm sm:text-md font-bold truncate text-red-100 tracking-tight shadow-red-500/50 drop-shadow"><%= artworkData.title %></h1>
+            <p class="text-[11px] sm:text-xs text-red-500 font-medium mt-0.5">
+                Kreator: <a href="/user/<%= artworkData.userId %>" class="hover:underline text-red-400 font-semibold"><%= artworkData.author %></a>
             </p>
         </div>
-        <button onclick="window.history.back()" class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all duration-300 shrink-0 active:scale-95">
-            Tutup
-        </button>
+        <div class="flex items-center gap-2 shrink-0">
+            <!-- Tombol Utama Unduh: Merah Crimson menyala -->
+            <button id="mainDownloadBtn" onclick="startDownloadProcess()" class="bg-gradient-to-r from-red-700 to-rose-900 hover:from-red-600 hover:to-rose-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-[0_0_10px_rgba(185,28,28,0.4)] transition-all duration-300 active:scale-95">
+                Unduh Semua
+            </button>
+            <button onclick="window.history.back()" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-zinc-800 transition-all duration-300 active:scale-95">
+                Tutup
+            </button>
+        </div>
     </header>
 
+    <!-- Panel Kontrol Unduhan Kardinal (Muncul Pop-up saat proses berjalan) -->
+    <div id="downloadControlPanel" class="hidden max-w-3xl mx-auto w-full px-3 sm:px-4 mt-4">
+        <div class="bg-zinc-950 border border-red-950 rounded-2xl p-4 shadow-[0_0_15px_rgba(185,28,28,0.1)] relative overflow-hidden">
+            <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-red-600 to-rose-700"></div>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div class="flex-1 w-full">
+                    <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-1.5">
+                        <span id="downloadStatusText">Mengunduh...</span>
+                        <span id="downloadProgressText">0 / <%= artworkData.pages.length %></span>
+                    </div>
+                    <!-- Progress Bar tema merah darah -->
+                    <div class="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800">
+                        <div id="downloadProgressBar" class="bg-gradient-to-r from-red-600 to-rose-500 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button id="pauseResumeBtn" onclick="togglePauseDownload()" class="flex-1 sm:flex-none bg-zinc-900 hover:bg-zinc-800 text-red-400 text-xs font-medium px-3 py-2 rounded-lg border border-red-950/60 transition-all">
+                        Jeda
+                    </button>
+                    <button onclick="cancelDownloadProcess()" class="flex-1 sm:flex-none bg-red-950/40 hover:bg-red-950/80 text-red-200 text-xs font-medium px-3 py-2 rounded-lg border border-red-900/60 transition-all">
+                        Batal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metadata Section -->
     <section class="max-w-3xl mx-auto w-full px-3 sm:px-4 mt-4">
-        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-sm relative overflow-hidden">
-            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+        <div class="bg-zinc-950 border border-zinc-900 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-700 to-zinc-900"></div>
             
-            <div class="flex flex-wrap gap-3 text-[11px] sm:text-xs font-medium text-zinc-500 mb-2.5 border-b border-zinc-800 pb-2.5">
-                <span>Dilihat: <strong class="text-zinc-200"><%= artworkData.viewCount %></strong></span>
-                <span>Penanda: <strong class="text-zinc-200"><%= artworkData.bookmarkCount %></strong></span>
-                <span>Total: <strong class="text-emerald-400"><%= artworkData.pages.length %> Gambar</strong></span>
+            <div class="flex flex-wrap gap-3 text-[11px] sm:text-xs font-medium text-zinc-500 mb-2.5 border-b border-zinc-900 pb-2.5">
+                <span>Dilihat: <strong class="text-zinc-300"><%= artworkData.viewCount %></strong></span>
+                <span>Penanda: <strong class="text-zinc-300"><%= artworkData.bookmarkCount %></strong></span>
+                <span>Total: <strong class="text-red-500"><%= artworkData.pages.length %> Gambar</strong></span>
             </div>
 
             <% if (artworkData.description) { %>
-                <div class="text-xs sm:text-sm text-zinc-300 leading-relaxed mb-4 overflow-x-auto prose prose-invert max-w-none break-words">
+                <div class="text-xs sm:text-sm text-zinc-400 leading-relaxed mb-4 overflow-x-auto prose prose-invert max-w-none break-words">
                     <%- artworkData.description %>
                 </div>
             <% } %>
 
             <div class="flex flex-wrap gap-1">
                 <% artworkData.tags.forEach(tag => { %>
-                    <a href="/search?q=<%= encodeURIComponent(tag) %>" class="text-[10px] sm:text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded-lg border border-zinc-700/60 hover:border-emerald-900 hover:text-emerald-400 transition-all">
+                    <a href="/search?q=<%= encodeURIComponent(tag) %>" class="text-[10px] sm:text-xs bg-zinc-900 text-zinc-500 px-2 py-1 rounded-lg border border-zinc-800 hover:border-red-900 hover:text-red-400 transition-all">
                         #<%= tag %>
                     </a>
                 <% }) %>
@@ -45,12 +80,13 @@
         </div>
     </section>
 
+    <!-- Main Images Section -->
     <main class="flex-1 flex flex-col items-center gap-2 py-4 max-w-3xl mx-auto w-full px-0 sm:px-4">
         
         <% if (artworkData.pages.length > 0) { %>
-            <div class="w-full bg-zinc-900 p-1 sm:p-2 border-y sm:border border-zinc-800 sm:rounded-2xl shadow-sm relative group">
-                <img src="/proxy?url=<%= encodeURIComponent(artworkData.pages[0]) %>" alt="Halaman 1" class="w-full h-auto block object-contain sm:rounded-xl max-w-full">
-                <span class="absolute bottom-3 right-3 bg-zinc-950/80 backdrop-blur-sm text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-md text-zinc-300 shadow-sm border border-zinc-700/50">
+            <div class="w-full bg-zinc-950 p-1 sm:p-2 border-y sm:border border-zinc-900 sm:rounded-2xl shadow-sm relative group">
+                <img src="/proxy?url=<%= encodeURIComponent(artworkData.pages[0]) %>" data-original-url="<%= artworkData.pages[0] %>" alt="Halaman 1" class="artwork-image w-full h-auto block object-contain sm:rounded-xl max-w-full">
+                <span class="absolute bottom-3 right-3 bg-black/80 backdrop-blur-sm text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-md text-red-400 shadow-sm border border-red-950">
                     1 / <%= artworkData.pages.length %>
                 </span>
             </div>
@@ -58,7 +94,7 @@
 
         <% if (artworkData.pages.length > 1) { %>
             <div id="trigger-container" class="w-full text-center py-3 px-4">
-                <button onclick="handleShowAllPages()" class="w-full sm:w-auto inline-flex justify-center items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-teal-600/10 text-emerald-400 font-semibold text-sm px-6 py-3 rounded-xl border border-emerald-900/60 shadow-sm transition-all duration-300 active:bg-emerald-950/40">
+                <button onclick="handleShowAllPages()" class="w-full sm:w-auto inline-flex justify-center items-center gap-2 bg-gradient-to-r from-red-950/20 to-zinc-900 text-red-400 font-semibold text-sm px-6 py-3 rounded-xl border border-red-950 shadow-sm transition-all duration-300 active:bg-red-950/40">
                     Lihat Semua (<%= artworkData.pages.length - 1 %> Gambar Lagi)
                 </button>
             </div>
@@ -67,9 +103,9 @@
         <div id="extra-pages" class="hidden w-full flex-col gap-2">
             <% artworkData.pages.forEach((pageUrl, index) => { %>
                 <% if (index > 0) { %>
-                    <div class="w-full bg-zinc-900 p-1 sm:p-2 border-y sm:border border-zinc-800 sm:rounded-2xl shadow-sm relative group">
-                        <img src="/proxy?url=<%= encodeURIComponent(pageUrl) %>" alt="Halaman <%= index + 1 %>" class="w-full h-auto block object-contain sm:rounded-xl max-w-full">
-                        <span class="absolute bottom-3 right-3 bg-zinc-950/80 backdrop-blur-sm text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-md text-zinc-300 shadow-sm border border-zinc-700/50">
+                    <div class="w-full bg-zinc-950 p-1 sm:p-2 border-y sm:border border-zinc-900 sm:rounded-2xl shadow-sm relative group">
+                        <img src="/proxy?url=<%= encodeURIComponent(pageUrl) %>" data-original-url="<%= pageUrl %>" alt="Halaman <%= index + 1 %>" class="artwork-image w-full h-auto block object-contain sm:rounded-xl max-w-full">
+                        <span class="absolute bottom-3 right-3 bg-black/80 backdrop-blur-sm text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-md text-red-400 shadow-sm border border-red-950">
                             <%= index + 1 %> / <%= artworkData.pages.length %>
                         </span>
                     </div>
@@ -79,6 +115,12 @@
     </main>
 
     <script>
+        // Logika manajemen status untuk kontrol unduhan
+        let isDownloading = false;
+        let isPaused = false;
+        let isCancelled = false;
+        let currentDownloadIndex = 0;
+
         function handleShowAllPages() {
             const extraPagesDiv = document.getElementById('extra-pages');
             const triggerContainer = document.getElementById('trigger-container');
@@ -88,6 +130,112 @@
                 extraPagesDiv.classList.add('flex');
                 triggerContainer.remove();
             }
+        }
+
+        function togglePauseDownload() {
+            const btn = document.getElementById('pauseResumeBtn');
+            const statusText = document.getElementById('downloadStatusText');
+            
+            if (isPaused) {
+                isPaused = false;
+                btn.innerText = 'Jeda';
+                statusText.innerText = 'Mengunduh...';
+                executeDownloadLoop(); // Lanjutkan loop proses unduh
+            } else {
+                isPaused = true;
+                btn.innerText = 'Lanjutkan';
+                statusText.innerText = 'Di-jeda';
+            }
+        }
+
+        function cancelDownloadProcess() {
+            isCancelled = true;
+            isDownloading = false;
+            isPaused = false;
+            resetDownloadUI('Unduhan dibatalkan.');
+        }
+
+        function resetDownloadUI(message) {
+            alert(message);
+            document.getElementById('downloadControlPanel').classList.add('hidden');
+            document.getElementById('mainDownloadBtn').disabled = false;
+            document.getElementById('mainDownloadBtn').innerText = 'Unduh Semua';
+            document.getElementById('pauseResumeBtn').innerText = 'Jeda';
+        }
+
+        async function startDownloadProcess() {
+            if (isDownloading) return;
+
+            const images = document.querySelectorAll('.artwork-image');
+            if (images.length === 0) {
+                alert('Tidak ada gambar yang siap diunduh.');
+                return;
+            }
+
+            // Inisialisasi State Awal
+            isDownloading = true;
+            isPaused = false;
+            isCancelled = false;
+            currentDownloadIndex = 0;
+
+            document.getElementById('mainDownloadBtn').disabled = true;
+            document.getElementById('mainDownloadBtn').innerText = 'Memproses...';
+            document.getElementById('downloadControlPanel').classList.remove('hidden');
+            document.getElementById('downloadStatusText').innerText = 'Mengunduh...';
+            
+            updateProgressBar(0, images.length);
+            executeDownloadLoop();
+        }
+
+        async function executeDownloadLoop() {
+            const images = document.querySelectorAll('.artwork-image');
+            const total = images.length;
+
+            while (currentDownloadIndex < total && isDownloading) {
+                if (isCancelled) break;
+                if (isPaused) return; // Keluar dari loop, nanti dipicu lagi saat klik Lanjutkan
+
+                const originalUrl = images[currentDownloadIndex].getAttribute('data-original-url');
+                
+                if (originalUrl) {
+                    try {
+                        const response = await fetch(`/proxy?url=${encodeURIComponent(originalUrl)}`);
+                        const blob = await response.blob();
+                        const objectUrl = window.URL.createObjectURL(blob);
+
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = objectUrl;
+                        downloadLink.download = `artwork_${currentDownloadIndex + 1}.jpg`;
+                        
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+
+                        window.URL.revokeObjectURL(objectUrl);
+                    } catch (error) {
+                        console.error('Gagal mengunduh indeks ke-' + currentDownloadIndex, error);
+                    }
+                }
+
+                currentDownloadIndex++;
+                updateProgressBar(currentDownloadIndex, total);
+
+                if (currentDownloadIndex < total) {
+                    // Beri delay antar file agar tidak dianggap spam request oleh browser
+                    await new Promise(resolve => setTimeout(resolve, 600));
+                }
+            }
+
+            if (currentDownloadIndex >= total && !isCancelled) {
+                isDownloading = false;
+                resetDownloadUI('Semua gambar berhasil diunduh!');
+            }
+        }
+
+        function updateProgressBar(current, total) {
+            const percent = Math.round((current / total) * 100);
+            document.getElementById('downloadProgressBar').style.width = percent + '%';
+            document.getElementById('downloadProgressText').innerText = `${current} / ${total}`;
         }
     </script>
 </body>
