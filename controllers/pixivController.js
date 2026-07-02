@@ -3,7 +3,7 @@ const axios = require('axios');
 
 const renderHome = async (req, res, next) => {
     try {
-        const query = 'rimuru tempest';
+        const query = 'Alice Von Ataraxia';
         const data = await pixivModel.searchPixiv(query);
         res.render('search', { query, data });
     } catch (error) {
