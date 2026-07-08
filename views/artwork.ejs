@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-black text-zinc-300 min-h-screen flex flex-col font-sans antialiased overflow-x-hidden">
-    <!-- Header: Tema Hitam dengan batas Merah Darah khas Alice -->
     <header class="sticky top-0 z-50 backdrop-blur-md bg-zinc-950/80 border-b border-red-950 p-3 sm:p-4 shadow-[0_4px_20px_rgba(185,28,28,0.15)] flex justify-between items-center px-4 sm:px-6">
         <div class="min-w-0 flex-1 pr-4">
             <h1 class="text-sm sm:text-md font-bold truncate text-red-100 tracking-tight shadow-red-500/50 drop-shadow"><%= artworkData.title %></h1>
@@ -16,7 +15,6 @@
             </p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
-            <!-- Tombol Utama Unduh: Merah Crimson menyala -->
             <button id="mainDownloadBtn" onclick="startDownloadProcess()" class="bg-gradient-to-r from-red-700 to-rose-900 hover:from-red-600 hover:to-rose-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-[0_0_10px_rgba(185,28,28,0.4)] transition-all duration-300 active:scale-95">
                 Unduh Semua
             </button>
@@ -26,7 +24,6 @@
         </div>
     </header>
 
-    <!-- Panel Kontrol Unduhan Kardinal (Muncul Pop-up saat proses berjalan) -->
     <div id="downloadControlPanel" class="hidden max-w-3xl mx-auto w-full px-3 sm:px-4 mt-4">
         <div class="bg-zinc-950 border border-red-950 rounded-2xl p-4 shadow-[0_0_15px_rgba(185,28,28,0.1)] relative overflow-hidden">
             <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-red-600 to-rose-700"></div>
@@ -36,7 +33,6 @@
                         <span id="downloadStatusText">Mengunduh...</span>
                         <span id="downloadProgressText">0 / <%= artworkData.pages.length %></span>
                     </div>
-                    <!-- Progress Bar tema merah darah -->
                     <div class="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800">
                         <div id="downloadProgressBar" class="bg-gradient-to-r from-red-600 to-rose-500 h-full w-0 transition-all duration-300"></div>
                     </div>
@@ -53,7 +49,6 @@
         </div>
     </div>
 
-    <!-- Metadata Section -->
     <section class="max-w-3xl mx-auto w-full px-3 sm:px-4 mt-4">
         <div class="bg-zinc-950 border border-zinc-900 rounded-2xl p-4 shadow-sm relative overflow-hidden">
             <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-700 to-zinc-900"></div>
@@ -80,7 +75,6 @@
         </div>
     </section>
 
-    <!-- Main Images Section -->
     <main class="flex-1 flex flex-col items-center gap-2 py-4 max-w-3xl mx-auto w-full px-0 sm:px-4">
         
         <% if (artworkData.pages.length > 0) { %>
@@ -191,6 +185,10 @@
             const images = document.querySelectorAll('.artwork-image');
             const total = images.length;
 
+            // Mengambil judul dari variabel EJS server, bersihkan karakter ilegal untuk nama file
+            const rawTitle = `<%= artworkData.title %>`;
+            const cleanTitle = rawTitle.replace(/[/\\?%*:|"<>\s]/g, '_');
+
             while (currentDownloadIndex < total && isDownloading) {
                 if (isCancelled) break;
                 if (isPaused) return; // Keluar dari loop, nanti dipicu lagi saat klik Lanjutkan
@@ -203,9 +201,15 @@
                         const blob = await response.blob();
                         const objectUrl = window.URL.createObjectURL(blob);
 
+                        // Pembuatan data Timestamp unix saat tombol atau baris diproses
+                        const timestamp = Math.floor(Date.now() / 1000);
+                        const pageNumber = currentDownloadIndex + 1;
+
                         const downloadLink = document.createElement('a');
                         downloadLink.href = objectUrl;
-                        downloadLink.download = `artwork_${currentDownloadIndex + 1}.jpg`;
+                        
+                        // FORMAT NAMA FILE BARU: [Judul]_[Halaman]_[Timestamp].jpg
+                        downloadLink.download = `${cleanTitle}_page_${pageNumber}_ts_${timestamp}.jpg`;
                         
                         document.body.appendChild(downloadLink);
                         downloadLink.click();
