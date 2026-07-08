@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-black text-zinc-300 font-sans antialiased overflow-x-hidden">
-    <!-- Navigasi: Tema hitam pekat dengan bayangan merah crimson -->
     <nav class="sticky top-0 z-50 backdrop-blur-md bg-zinc-950/80 border-b border-red-950 shadow-[0_4px_20px_rgba(185,28,28,0.15)] px-4 py-3">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
             <div class="flex justify-between items-center w-full sm:w-auto shrink-0">
@@ -67,7 +66,6 @@
             <% }) %>
         </div>
 
-        <!-- Spinner Loading Merah -->
         <div id="loading-trigger" class="w-full text-center py-8 mt-4 flex justify-center items-center">
             <div id="loading-spinner" class="hidden">
                 <svg class="animate-spin h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -88,6 +86,10 @@
         const loadingTrigger = document.getElementById('loading-trigger');
         const loadingSpinner = document.getElementById('loading-spinner');
 
+        // Kunci unik penyimpanan localStorage berdasarkan kata kunci pencarian
+        const cacheStateKey = `search_state_${encodeURIComponent(queryKeyword)}`;
+        const cacheScrollKey = `search_scroll_${encodeURIComponent(queryKeyword)}`;
+
         const scrollObserver = new IntersectionObserver(async (entries) => {
             if (entries[0].isIntersecting && !isFetching && !isEndContent) {
                 await fetchNextPageData();
@@ -96,8 +98,67 @@
             rootMargin: '400px'
         });
 
-        if (loadingTrigger) {
-            scrollObserver.observe(loadingTrigger);
+        // Jalankan fungsi restorasi data setelah seluruh komponen HTML utama siap
+        document.addEventListener('DOMContentLoaded', async () => {
+            await restorePreviousSearchState();
+            
+            if (loadingTrigger) {
+                scrollObserver.observe(loadingTrigger);
+            }
+
+            // Simpan posisi gulir secara berkala saat pengguna melakukan scrolling halaman
+            window.addEventListener('scroll', () => {
+                if (!isFetching) {
+                    localStorage.setItem(cacheScrollKey, window.scrollY);
+                }
+            });
+        });
+
+        // Fungsi untuk mengembalikan data halaman yang sudah pernah dimuat sebelumnya
+        async function restorePreviousSearchState() {
+            const savedPage = localStorage.getItem(cacheStateKey);
+            const savedScrollY = localStorage.getItem(cacheScrollKey);
+
+            if (savedPage && Number(savedPage) > 1) {
+                const targetMaxPage = Number(savedPage);
+                isFetching = true;
+                loadingSpinner.classList.remove('hidden');
+
+                // Lakukan perulangan untuk menarik kembali semua halaman yang tersimpan
+                for (let pageIdx = 2; pageIdx <= targetMaxPage; pageIdx++) {
+                    try {
+                        const targetUrl = `/search?q=${encodeURIComponent(queryKeyword)}&page=${pageIdx}&ajax=1`;
+                        const response = await fetch(targetUrl);
+                        const result = await response.json();
+
+                        if (!result.artworks || result.artworks.length === 0) {
+                            isEndContent = true;
+                            loadingTrigger.innerHTML = '<span class="text-xs text-red-950 font-bold tracking-wide">Semua karya telah berhasil dimuat</span>';
+                            break;
+                        }
+
+                        renderArtworksToGrid(result.artworks);
+                        currentPage = pageIdx;
+
+                    } catch (error) {
+                        console.error(`Gagal merestorasi data halaman ${pageIdx}:`, error);
+                        break;
+                    }
+                }
+
+                isFetching = false;
+                loadingSpinner.classList.add('hidden');
+
+                // Kembalikan posisi gulir layar ke koordinat terakhir pengguna
+                if (savedScrollY) {
+                    setTimeout(() => {
+                        window.scrollTo({
+                            top: Number(savedScrollY),
+                            behavior: 'instant'
+                        });
+                    }, 100);
+                }
+            }
         }
 
         async function fetchNextPageData() {
@@ -116,45 +177,10 @@
                     return;
                 }
 
-                result.artworks.forEach(art => {
-                    const isR18 = art.tags.includes('R-18') || art.tags.includes('R18');
-                    
-                    const tagsContainerHtml = art.tags.map(tag => `
-                        <a href="/search?q=${encodeURIComponent(tag)}" class="text-[10px] bg-zinc-900 text-zinc-500 px-2 py-0.5 rounded-md hover:text-red-400 transition-all duration-200 truncate max-w-[85px]">
-                            #${tag}
-                        </a>
-                    `).join('');
-
-                    const elementHtml = `
-                        <a href="/artwork/${art.id}" class="block relative overflow-hidden bg-black">
-                            <img src="/proxy?url=${encodeURIComponent(art.image_urls.medium)}" alt="${art.title}" class="w-full h-44 sm:h-48 md:h-52 object-cover" loading="lazy">
-                            ${isR18 ? `<span class="absolute top-2.5 left-2.5 bg-red-600/90 backdrop-blur-sm text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-lg shadow-sm tracking-wider">R-18</span>` : ''}
-                            <span class="absolute top-2.5 right-2.5 bg-black/80 backdrop-blur-sm text-red-400 text-[9px] sm:text-[10px] font-medium px-1.5 py-0.5 rounded-lg shadow-sm border border-red-950">
-                                ${art.pageCount} Pgs
-                            </span>
-                        </a>
-                        <div class="p-3 sm:p-4 flex-1 flex flex-col justify-between gap-2.5 bg-zinc-950">
-                            <div>
-                                <a href="/artwork/${art.id}" class="text-xs sm:text-sm font-semibold text-zinc-100 line-clamp-1 block hover:text-red-400 transition-colors">${art.title}</a>
-                                <p class="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
-                                    Oleh <a href="/user/${art.userId}" class="text-red-500 font-medium hover:underline">${art.userName}</a>
-                                </p>
-                            </div>
-                            <div class="flex flex-wrap gap-1 overflow-hidden h-5">
-                                ${tagsContainerHtml}
-                            </div>
-                        </div>
-                    `;
-
-                    const nodeWrapper = document.createElement('div');
-                    nodeWrapper.className = "bg-zinc-950 border border-zinc-900 rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between transition-all duration-300 group active:border-red-900";
-                    
-                    nodeWrapper.style.contentVisibility = "auto";
-                    nodeWrapper.style.containIntrinsicSize = "0 340px";
-                    
-                    nodeWrapper.innerHTML = elementHtml;
-                    artworkGrid.appendChild(nodeWrapper);
-                });
+                renderArtworksToGrid(result.artworks);
+                
+                // Perbarui penanda halaman terakhir yang sukses dimuat ke memori lokal
+                localStorage.setItem(cacheStateKey, currentPage);
 
             } catch (error) {
                 console.error('Gagal mengambil halaman tambahan:', error);
@@ -164,6 +190,49 @@
                     loadingSpinner.classList.add('hidden');
                 }
             }
+        }
+
+        // Fungsi bantu memetakan susunan HTML kartu karya baru ke dalam Grid utama
+        function renderArtworksToGrid(artworks) {
+            artworks.forEach(art => {
+                const isR18 = art.tags.includes('R-18') || art.tags.includes('R18');
+                
+                const tagsContainerHtml = art.tags.map(tag => `
+                    <a href="/search?q=${encodeURIComponent(tag)}" class="text-[10px] bg-zinc-900 text-zinc-500 px-2 py-0.5 rounded-md hover:text-red-400 transition-all duration-200 truncate max-w-[85px]">
+                        #${tag}
+                    </a>
+                `).join('');
+
+                const elementHtml = `
+                    <a href="/artwork/${art.id}" class="block relative overflow-hidden bg-black">
+                        <img src="/proxy?url=${encodeURIComponent(art.image_urls.medium)}" alt="${art.title}" class="w-full h-44 sm:h-48 md:h-52 object-cover" loading="lazy">
+                        ${isR18 ? `<span class="absolute top-2.5 left-2.5 bg-red-600/90 backdrop-blur-sm text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-lg shadow-sm tracking-wider">R-18</span>` : ''}
+                        <span class="absolute top-2.5 right-2.5 bg-black/80 backdrop-blur-sm text-red-400 text-[9px] sm:text-[10px] font-medium px-1.5 py-0.5 rounded-lg shadow-sm border border-red-950">
+                            ${art.pageCount} Pgs
+                        </span>
+                    </a>
+                    <div class="p-3 sm:p-4 flex-1 flex flex-col justify-between gap-2.5 bg-zinc-950">
+                        <div>
+                            <a href="/artwork/${art.id}" class="text-xs sm:text-sm font-semibold text-zinc-100 line-clamp-1 block hover:text-red-400 transition-colors">${art.title}</a>
+                            <p class="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
+                                Oleh <a href="/user/${art.userId}" class="text-red-500 font-medium hover:underline">${art.userName}</a>
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-1 overflow-hidden h-5">
+                            ${tagsContainerHtml}
+                        </div>
+                    </div>
+                `;
+
+                const nodeWrapper = document.createElement('div');
+                nodeWrapper.className = "bg-zinc-950 border border-zinc-900 rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between transition-all duration-300 group active:border-red-900";
+                
+                nodeWrapper.style.contentVisibility = "auto";
+                nodeWrapper.style.containIntrinsicSize = "0 340px";
+                
+                nodeWrapper.innerHTML = elementHtml;
+                artworkGrid.appendChild(nodeWrapper);
+            });
         }
     </script>
 </body>
